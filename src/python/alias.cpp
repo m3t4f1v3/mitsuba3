@@ -166,6 +166,8 @@ static void set_variant(nb::args args) {
             nb::steal(PyImport_ReloadModule(mi_python.ptr()));
             mi_python = nb::module_::import_("mitsuba.python.ad.loaders");
             nb::steal(PyImport_ReloadModule(mi_python.ptr()));
+            mi_python = nb::module_::import_("mitsuba.python.ad.bsdfs");
+            nb::steal(PyImport_ReloadModule(mi_python.ptr()));
         }
 
         // Only invoke user-provided callbacks after Mitsuba plugins have reloaded,

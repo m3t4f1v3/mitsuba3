@@ -47,7 +47,8 @@ BSDF_ORDERING = [
     'polarizer',
     'retarder',
     'circular',
-    'pplastic'
+    'pplastic',
+    '../src/python/python/ad/bsdfs/skin.py',
 ]
 
 EMITTER_ORDERING = [
