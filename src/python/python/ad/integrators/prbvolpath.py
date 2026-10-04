@@ -35,6 +35,18 @@ class PRBVolpathIntegrator(RBIntegrator):
          1, then path generation many randomly cease after encountering directly
          visible surfaces. (Default: 5)
 
+     * - rr_threshold
+       - |float|
+       - If positive, Russian roulette only acts on paths whose throughput has fallen
+         below this value, and lifts the survivors back to it: a path survives with
+         probability :math:`\min(\mathrm{throughput} \cdot \eta^2 / \mathrm{rr\_threshold}, 1)`.
+         The default criterion roulettes every vertex past ``rr_depth``, at 0.99 where
+         the throughput is one. In a medium whose single-scattering albedo is close to
+         one (skin at red wavelengths, clouds), a walk keeps a throughput near one for
+         hundreds of scattering events, and the few walks that survive that many
+         roulettes return weighted in the thousands, as fireflies; without roulette they
+         run until they escape. (Default: 0, i.e. the default criterion)
+
      * - hide_emitters
        - |bool|
        - Hide directly visible emitters. (Default: no, i.e. |false|)
@@ -72,6 +84,7 @@ class PRBVolpathIntegrator(RBIntegrator):
     """
     def __init__(self, props):
         super().__init__(props)
+        self.rr_threshold = props.get('rr_threshold', 0.0)
         self.use_nee = False
         self.nee_handle_homogeneous = False
         self.handle_null_scattering = False
@@ -143,10 +156,14 @@ class PRBVolpathIntegrator(RBIntegrator):
 
             #--------------------- Perform russian roulette --------------------
 
-            q = dr.minimum(dr.max(throughput) * dr.square(η), 0.99)
-            perform_rr = (depth > self.rr_depth)
+            if dr.hint(self.rr_threshold > 0, mode='scalar'):
+                # Only roulette paths that have lost energy; survivors return to the threshold
+                q = dr.minimum(dr.max(throughput) * dr.square(η) / self.rr_threshold, 1.0)
+            else:
+                q = dr.minimum(dr.max(throughput) * dr.square(η), 0.99)
+            perform_rr = (depth > self.rr_depth) & (q < 1.0)
             active &= (sampler.next_1d(active) < q) | ~perform_rr
-            throughput[perform_rr] = throughput * dr.rcp(q)
+            throughput[perform_rr] = throughput * dr.rcp(dr.maximum(q, 1e-12))
 
             active_medium = active & (medium != None)
             active_surface = active & ~active_medium
@@ -444,7 +461,8 @@ class PRBVolpathIntegrator(RBIntegrator):
         return emitter_val * dr.detach(transmittance), ds
 
     def to_string(self):
-        return f'PRBVolpathIntegrator[max_depth = {self.max_depth}]'
+        return (f'PRBVolpathIntegrator[max_depth = {self.max_depth}, rr_depth = {self.rr_depth}, '
+                f'rr_threshold = {self.rr_threshold}]')
 
 mi.register_integrator("prbvolpath", lambda props: PRBVolpathIntegrator(props))
 
