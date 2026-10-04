@@ -22,6 +22,23 @@ alt="Mitsuba banner">
 [11]: https://img.shields.io/pypi/v/mitsuba.svg?color=green
 [12]: https://pypi.org/pypi/mitsuba
 
+## This fork: the `skin` branch
+
+Mitsuba 3.9.1 with three additions for rendering skin as a participating medium under a
+rough boundary. They are implemented in Python and covered by
+`src/bsdfs/tests/test_skin.py` and `src/integrators/tests/test_prbvolpath.py`.
+
+| | |
+| --- | --- |
+| `skindielectric` | `roughdielectric` plus a reciprocal cosine lobe for the energy its single-scattering microfacet model drops (Kulla & Conty). Under a scattering medium that loss compounds: a white furnace renders at 0.73 with `roughdielectric` at `alpha = 0.3`, and at 1.00 with this. |
+| `skinsurface` | The same energy with the transmitted light as a separable diffuse lobe, so that a walk reaching the boundary from inside can be connected to a light. A face under studio softboxes renders with a third of the noise. Optional `tint` and `gloss` textures act where the sensor sees the surface. |
+| `prbvolpath`: `rr_threshold` | Russian roulette only on paths whose throughput has fallen below the threshold. The default criterion roulettes every vertex, and in a medium with an albedo near one its survivors come back as fireflies. |
+
+The plugins are documented with the others (BSDFs, integrators). Because they are Python,
+they also run on a stock `mitsuba==3.9.1` wheel: import this checkout's
+`src/python/python/ad/bsdfs` package and `ad/integrators/prbvolpath.py` after setting a
+variant.
+
 ## Introduction
 
 Mitsuba 3 is a research-oriented rendering system for forward and inverse light
